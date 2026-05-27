@@ -3,8 +3,8 @@
 Telegram Group Monitor Bot - Database Module
 """
 
-import sqlite3
 import os
+import sqlite3
 from typing import Optional
 
 from config import Config
@@ -114,8 +114,8 @@ class Database:
         conn = self._get_connection()
         try:
             cursor = conn.execute(
-                """INSERT INTO events (chat_id, user_id, event_type, old_value, new_value, extra_data)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                "INSERT INTO events (chat_id, user_id, event_type, old_value, new_value, extra_data) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (chat_id, user_id, event_type, old_value, new_value, extra_data),
             )
             conn.commit()
@@ -140,16 +140,15 @@ class Database:
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO users (user_id, first_name, last_name, username, full_name, photo_file_id, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
-                   ON CONFLICT(user_id) DO UPDATE SET
-                       first_name    = excluded.first_name,
-                       last_name     = excluded.last_name,
-                       username      = excluded.username,
-                       full_name     = excluded.full_name,
-                       photo_file_id = COALESCE(excluded.photo_file_id, users.photo_file_id),
-                       updated_at    = strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')
-                """,
+                "INSERT INTO users (user_id, first_name, last_name, username, full_name, photo_file_id, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')) "
+                "ON CONFLICT(user_id) DO UPDATE SET "
+                "first_name = excluded.first_name, "
+                "last_name = excluded.last_name, "
+                "username = excluded.username, "
+                "full_name = excluded.full_name, "
+                "photo_file_id = COALESCE(excluded.photo_file_id, users.photo_file_id), "
+                "updated_at = strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')",
                 (user_id, first_name, last_name, username, full_name, photo_file_id),
             )
             conn.commit()
@@ -180,13 +179,12 @@ class Database:
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO group_settings (chat_id, chat_title, welcome_enabled, welcome_message)
-                   VALUES (?, ?, ?, ?)
-                   ON CONFLICT(chat_id) DO UPDATE SET
-                       chat_title      = excluded.chat_title,
-                       welcome_enabled = excluded.welcome_enabled,
-                       welcome_message = COALESCE(excluded.welcome_message, group_settings.welcome_message)
-                """,
+                "INSERT INTO group_settings (chat_id, chat_title, welcome_enabled, welcome_message) "
+                "VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(chat_id) DO UPDATE SET "
+                "chat_title = excluded.chat_title, "
+                "welcome_enabled = excluded.welcome_enabled, "
+                "welcome_message = COALESCE(excluded.welcome_message, group_settings.welcome_message)",
                 (chat_id, chat_title, int(welcome_enabled), welcome_message),
             )
             conn.commit()
@@ -197,9 +195,7 @@ class Database:
         """دریافت تنظیمات گروه"""
         conn = self._get_connection()
         try:
-            row = conn.execute(
-                "SELECT * FROM group_settings WHERE chat_id = ?", (chat_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM group_settings WHERE chat_id = ?", (chat_id,)).fetchone()
             return dict(row) if row else None
         finally:
             conn.close()
@@ -232,31 +228,15 @@ class Database:
     #  گزارش‌گیری
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    def get_group_report(
-        self,
-        chat_id: int,
-        limit: Optional[int] = None,
-    ) -> list[dict]:
-        """
-        دریافت گزارش کامل رویدادهای یک گروه
-
-        Args:
-            chat_id: آیدی گروه
-            limit: حداکثر تعداد رکورد
-
-        Returns:
-            لیست رویدادها
-        """
+    def get_group_report(self, chat_id: int, limit: Optional[int] = None) -> list[dict]:
+        """دریافت گزارش کامل رویدادهای یک گروه"""
         limit = limit or Config.REPORT_PAGE_SIZE
         conn = self._get_connection()
         try:
             rows = conn.execute(
-                """SELECT e.*, u.first_name, u.last_name, u.username, u.full_name
-                   FROM events e
-                   LEFT JOIN users u ON e.user_id = u.user_id
-                   WHERE e.chat_id = ?
-                   ORDER BY e.created_at DESC
-                   LIMIT ?""",
+                "SELECT e.*, u.first_name, u.last_name, u.username, u.full_name "
+                "FROM events e LEFT JOIN users u ON e.user_id = u.user_id "
+                "WHERE e.chat_id = ? ORDER BY e.created_at DESC LIMIT ?",
                 (chat_id, limit),
             ).fetchall()
             return [dict(row) for row in rows]
@@ -268,33 +248,26 @@ class Database:
         conn = self._get_connection()
         try:
             stats = {}
-            for event_type in ("join", "left", "name_change", "username_change", "photo_change"):
+            for etype in ("join", "left", "name_change", "username_change", "photo_change"):
                 row = conn.execute(
                     "SELECT COUNT(*) as count FROM events WHERE chat_id = ? AND event_type = ?",
-                    (chat_id, event_type),
+                    (chat_id, etype),
                 ).fetchone()
-                stats[event_type] = row["count"]
+                stats[etype] = row["count"]
             return stats
         finally:
             conn.close()
 
-    def get_events_by_type(
-        self,
-        chat_id: int,
-        event_type: str,
-        limit: Optional[int] = None,
-    ) -> list[dict]:
+    def get_events_by_type(self, chat_id: int, event_type: str, limit: Optional[int] = None) -> list[dict]:
         """دریافت رویدادها بر اساس نوع"""
         limit = limit or Config.REPORT_PAGE_SIZE
         conn = self._get_connection()
         try:
             rows = conn.execute(
-                """SELECT e.*, u.first_name, u.last_name, u.username, u.full_name
-                   FROM events e
-                   LEFT JOIN users u ON e.user_id = u.user_id
-                   WHERE e.chat_id = ? AND e.event_type = ?
-                   ORDER BY e.created_at DESC
-                   LIMIT ?""",
+                "SELECT e.*, u.first_name, u.last_name, u.username, u.full_name "
+                "FROM events e LEFT JOIN users u ON e.user_id = u.user_id "
+                "WHERE e.chat_id = ? AND e.event_type = ? "
+                "ORDER BY e.created_at DESC LIMIT ?",
                 (chat_id, event_type, limit),
             ).fetchall()
             return [dict(row) for row in rows]
@@ -310,11 +283,10 @@ class Database:
         conn = self._get_connection()
         try:
             rows = conn.execute(
-                """SELECT e.*, u.first_name, u.last_name, u.username, u.full_name
-                   FROM events e
-                   LEFT JOIN users u ON e.user_id = u.user_id
-                   WHERE e.chat_id = ? AND e.user_id = ?
-                   ORDER BY e.created_at DESC""",
+                "SELECT e.*, u.first_name, u.last_name, u.username, u.full_name "
+                "FROM events e LEFT JOIN users u ON e.user_id = u.user_id "
+                "WHERE e.chat_id = ? AND e.user_id = ? "
+                "ORDER BY e.created_at DESC",
                 (chat_id, user_id),
             ).fetchall()
             return [dict(row) for row in rows]
@@ -326,8 +298,7 @@ class Database:
         conn = self._get_connection()
         try:
             cursor = conn.execute(
-                """DELETE FROM events
-                   WHERE created_at < datetime('now', ? || ' days')""",
+                "DELETE FROM events WHERE created_at < datetime('now', ? || ' days')",
                 (f"-{days}",),
             )
             conn.commit()
