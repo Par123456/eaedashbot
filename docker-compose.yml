@@ -1,1 +1,24 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  🐳 Docker Compose - ربات مانیتور گروه تلگرام
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+version: "3.8"
+
+services:
+  bot:
+    build: .
+    container_name: telegram-group-monitor
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - bot-data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  bot-data:
+    driver: local
