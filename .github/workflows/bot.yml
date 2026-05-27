@@ -34,9 +34,8 @@ on:
   schedule:
     - cron: "0 */6 * * *"
 
-# ─── تنظیم Node.js 24 برای GitHub Actions ───
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+permissions:
+  contents: read
 
 jobs:
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -72,40 +71,12 @@ jobs:
           black --check --diff --line-length=120 --exclude=venv .
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  مرحله ۲: ساخت داکر
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  build:
-    name: ساخت داکر
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - name: دریافت کد
-        uses: actions/checkout@v4
-
-      - name: تنظیم Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: ساخت ایمیج
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          tags: telegram-group-monitor:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: تست ایمیج
-        run: |
-          docker run --rm telegram-group-monitor:latest python -c "import config; print('OK')"
-
-  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  مرحله ۳: اجرای ربات
+  #  مرحله ۲: اجرای ربات
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   run-bot:
     name: اجرای ربات
     runs-on: ubuntu-latest
-    needs: [lint, build]
+    needs: lint
     timeout-minutes: 350
 
     env:
