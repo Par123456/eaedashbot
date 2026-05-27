@@ -7,10 +7,7 @@ import logging
 import os
 import sys
 
-from telegram.ext import (
-    Application,
-    ApplicationBuilder,
-)
+from telegram.ext import Application, ApplicationBuilder
 
 from config import Config
 from handlers import register_handlers
@@ -42,13 +39,7 @@ def main() -> None:
     # ─── ساخت اپلیکیشن ───
     logger.info("🚀 در حال راه‌اندازی ربات...")
 
-    application = (
-        ApplicationBuilder()
-        .token(Config.BOT_TOKEN)
-        .post_init(post_init)
-        .post_shutdown(post_shutdown)
-        .build()
-    )
+    application = ApplicationBuilder().token(Config.BOT_TOKEN).post_init(post_init).post_shutdown(post_shutdown).build()
 
     # ─── ثبت هندلرها ───
     register_handlers(application)
@@ -68,7 +59,7 @@ def main() -> None:
 async def post_init(application: Application) -> None:
     """عملیات بعد از مقداردهی اولیه"""
     bot_info = await application.bot.get_me()
-    logger.info(f"🤖 ربات: @{bot_info.username} ({bot_info.first_name})")
+    logger.info("🤖 ربات: @%s (%s)", bot_info.username, bot_info.first_name)
 
     # ساخت پوشه دیتابیس
     db_dir = os.path.dirname(Config.DATABASE_PATH)
@@ -94,5 +85,5 @@ if __name__ == "__main__":
         logger.error(str(e))
         sys.exit(1)
     except Exception as e:
-        logger.critical(f"💥 خطای بحرانی: {e}", exc_info=True)
+        logger.critical("💥 خطای بحرانی: %s", e, exc_info=True)
         sys.exit(1)
