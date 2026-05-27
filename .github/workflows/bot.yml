@@ -2,21 +2,17 @@
 #  🤖 GitHub Actions Workflow - ربات مانیتور گروه تلگرام
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-#  اجرای ربات تلگرام روی GitHub Actions
-#  - هر ۶ ساعت یکبار اجرا میشه
-#  - با دستور manual هم قابل اجراست
-#  - دیتابیس بین اجراها حفظ میشه (Artifact)
+#  🔐 حتماً این Secrets رو تنظیم کنید:
+#     Settings → Secrets and variables → Actions → New repository secret
 #
-#  🔐 تنظیمات مورد نیاز (Settings > Secrets):
-#  - BOT_TOKEN: توکن ربات تلگرام
-#  - ADMIN_IDS: آیدی ادمین‌ها (اختیاری)
+#     BOT_TOKEN  = توکن ربات از @BotFather
+#     ADMIN_IDS  = آیدی عددی ادمین‌ها (اختیاری)
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 name: 🤖 Telegram Bot Runner
 
 on:
-  # ─── اجرای دستی ───
   workflow_dispatch:
     inputs:
       log_level:
@@ -30,16 +26,18 @@ on:
           - WARNING
           - ERROR
 
-  # ─── اجرای زمان‌بندی شده (هر ۶ ساعت) ───
   schedule:
     - cron: "0 */6 * * *"
 
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  مرحله ۱: بررسی کیفیت کد
+  #  بررسی کد
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   lint:
     name: بررسی کد
@@ -71,7 +69,7 @@ jobs:
           black --check --diff --line-length=120 --exclude=venv .
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  #  مرحله ۲: اجرای ربات
+  #  اجرای ربات
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   run-bot:
     name: اجرای ربات
@@ -86,13 +84,31 @@ jobs:
       LOG_LEVEL: ${{ github.event.inputs.log_level || 'INFO' }}
 
     steps:
+      # ─── بررسی تنظیمات ───
+      - name: بررسی BOT_TOKEN
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ خطا: BOT_TOKEN تنظیم نشده!"
+            echo ""
+            echo "📌 لطفاً این مراحل رو انجام بده:"
+            echo "   1. به Repository برو"
+            echo "   2. Settings → Secrets and variables → Actions"
+            echo "   3. New repository secret"
+            echo "   4. Name: BOT_TOKEN"
+            echo "   5. Value: توکن ربات از @BotFather"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          fi
+          echo "✅ BOT_TOKEN تنظیم شده"
+
       - name: دریافت کد
         uses: actions/checkout@v4
 
-      # ─── بازیابی دیتابیس قبلی ───
-      - name: بازیابی دیتابیس
-        uses: actions/download-artifact@v4
+      # ─── بازیابی دیتابیس قبلی (اولین اجرا ممکنه نباشه) ───
+      - name: بازیابی دیتابیس قبلی
         continue-on-error: true
+        uses: actions/download-artifact@v4
         with:
           name: bot-database
           path: data/
@@ -108,7 +124,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ─── ساخت پوشه دیتابیس ───
       - name: آماده‌سازی محیط
         run: mkdir -p data
 
@@ -131,7 +146,7 @@ jobs:
           path: data/
           retention-days: 90
 
-      # ─── لاگ اجرا ───
+      # ─── لاگ ───
       - name: جمع‌آوری لاگ‌ها
         if: always()
         run: |
